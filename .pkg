@@ -1,0 +1,8 @@
+[libressl]
+  url=git@github.com:motis-project/libressl.git
+  branch=master
+  commit=faa48d99b721dfa85fa9cc9695b2eae9dcbda503
+[utl]
+  url=git@github.com:motis-project/utl.git
+  branch=master
+  commit=a2375f6e2b20b6754335649857923e8b4a149ed9
