@@ -51,6 +51,13 @@ set(RMQ_SOURCES
 
 add_library(rabbitmq STATIC)
 
+include(GenerateExportHeader)
+generate_export_header(rabbitmq
+  BASE_NAME AMQP
+  EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/rabbitmq-c/export.h
+  STATIC_DEFINE AMQP_STATIC
+  INCLUDE_GUARD_NAME RABBITMQ_C_EXPORT_H)
+
 target_sources(rabbitmq PRIVATE ${RMQ_SOURCES})
 target_include_directories(rabbitmq
   PUBLIC
@@ -82,3 +89,4 @@ endif()
 add_library(rabbitmq-cpp INTERFACE)
 target_link_libraries(rabbitmq-cpp INTERFACE rabbitmq)
 target_include_directories(rabbitmq-cpp INTERFACE cpp)
+target_compile_features(rabbitmq INTERFACE cxx_std_17)

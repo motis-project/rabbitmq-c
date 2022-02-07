@@ -21,7 +21,8 @@ struct ssl_connection {
         amqp_ssl_socket_set_key(s_, cert.c_str(), key.c_str());
     utl::verify(set_key_result == AMQP_STATUS_OK, "AMQP SSL bad cert/key");
 
-    auto const tval = timeval{.tv_sec = timeout.count(), .tv_usec = 0U};
+    auto tval = timeval{};
+    tval.tv_sec = static_cast<long>(timeout.count());
     auto const open_result =
         amqp_socket_open_noblock(s_, host.c_str(), port, &tval);
     utl::verify(open_result == AMQP_STATUS_OK, "AMQP open socket failed");

@@ -2,7 +2,9 @@
 #define CONFIG_H
 
 #define HAVE_SELECT 1
+#ifndef _WIN32
 #define HAVE_POLL 1
+#endif
 #define AMQ_PLATFORM "@CMAKE_SYSTEM_NAME@"
 
 #endif /* CONFIG_H */
