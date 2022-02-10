@@ -74,10 +74,14 @@ target_compile_definitions(rabbitmq
   PRIVATE -DHAVE_CONFIG_H
 )
 
-target_link_libraries(rabbitmq PRIVATE
-  ssl
-  crypto
-  ${CMAKE_THREAD_LIBS_INIT}
+target_link_libraries(rabbitmq
+  PRIVATE
+    ssl
+    crypto
+    ${CMAKE_THREAD_LIBS_INIT}
+  PUBLIC
+    cista
+    utl
 )
 
 if (MSVC)
