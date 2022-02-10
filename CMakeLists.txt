@@ -86,7 +86,9 @@ target_link_libraries(rabbitmq
 
 if (MSVC)
   target_link_libraries(rabbitmq PRIVATE ws2_32)
-else()
+endif()
+
+if(UNIX AND NOT APPLE)
   target_link_libraries(rabbitmq PRIVATE rt)
 endif()
 
