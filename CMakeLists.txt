@@ -27,10 +27,9 @@ set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 
 if (WIN32)
-  set(AMQP_SSL_SRCS ${AMQP_SSL_SRCS} librabbitmq/win32/threads.h librabbitmq/win32/threads.c)
+  set(AMQP_SSL_SRCS ${AMQP_SSL_SRCS} librabbitmq/win32/threads.c)
   set(SSL_INCLUDE_DIRS librabbitmq/win32)
 else()
-  set(AMQP_SSL_SRCS ${AMQP_SSL_SRCS} librabbitmq/unix/threads.h)
   set(SSL_INCLUDE_DIRS librabbitmq/unix)
 endif()
 
@@ -47,6 +46,7 @@ set(RMQ_SOURCES
   librabbitmq/amqp_url.c
   librabbitmq/amqp_openssl.c
   librabbitmq/amqp_openssl_bio.c
+  ${AMQP_SSL_SRCS}
 )
 
 add_library(rabbitmq STATIC)
