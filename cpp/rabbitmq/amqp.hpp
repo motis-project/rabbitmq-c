@@ -132,11 +132,31 @@ struct con {
     throw_if_error(amqp_get_rpc_reply(conn_), "RabbitMQ: Opening channel");
     channel_open_ = true;
 
+    // Set QoS.
+    if (login_->prefetch_count_ != 0) {
+      log_->operator()("basic qos");
+      amqp_basic_qos(conn_, kChannel, 0, login_->prefetch_count_, false);
+      throw_if_error(amqp_get_rpc_reply(conn_), "RabbitMQ: QoS");
+    }
+
     // Consume.
     log_->operator()("basic consume");
     auto const queue_name_bytes = amqp_bytes_from_str(login_->queue_);
+
+    // For RabbitMQ Streams: Add x-stream-offset consumer argument
+    auto args = amqp_empty_table;
+    auto arg = amqp_table_entry_t{};
+    if (!login_->stream_offset_.empty()) {
+      arg.key = amqp_cstring_bytes("x-stream-offset");
+      arg.value.kind = AMQP_FIELD_KIND_UTF8;
+      arg.value.value.bytes = amqp_cstring_bytes(login_->stream_offset_.c_str());
+
+      args.num_entries = 1;
+      args.entries = &arg;
+    }
+
     amqp_basic_consume(conn_, kChannel, queue_name_bytes, amqp_empty_bytes, 0,
-                       1, 0, amqp_empty_table);
+                       0, 0, args);
     log_->operator()("basic consume get rpc reply");
     throw_if_error(amqp_get_rpc_reply(conn_), "Consuming");
   }
@@ -164,6 +184,9 @@ struct con {
                        envelope.routing_key.len},
            std::string{static_cast<char*>(envelope.message.body.bytes),
                        envelope.message.body.len}});
+
+    auto const ack_result = amqp_basic_ack(conn_, kChannel, envelope.delivery_tag, 0);
+    utl::verify(ack_result == 0, "RabbitMQ: could not send ack");
 
     amqp_destroy_envelope(&envelope);
   }

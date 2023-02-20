@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 #include "cista/reflection/comparable.h"
@@ -24,8 +25,10 @@ struct login {
   unsigned port_{0U};
   std::string vhost_{"ribasis"}, queue_;
   std::string user_, pw_;
-  std::string ca_{"cacert.pem"}, cert_{"cert.pem"}, key_{"key.pem"};
+  std::string ca_{}, cert_{}, key_{};
   unsigned timeout_{10U};
+  std::uint16_t prefetch_count_{0U};
+  std::string stream_offset_;
 };
 
 }  // namespace amqp
