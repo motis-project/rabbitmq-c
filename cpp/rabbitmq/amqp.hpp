@@ -228,7 +228,6 @@ struct ssl_connection {
           log_("receive loop");
           while (!stopped_) {
             con_.receive(cb);
-            std::this_thread::sleep_for(std::chrono::milliseconds(250));
           }
         } catch (std::exception const& e) {
           log_(fmt::format("error: {}, reconnecting ...", e.what()));
