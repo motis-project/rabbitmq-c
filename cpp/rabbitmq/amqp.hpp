@@ -2,6 +2,9 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
+#include <optional>
+#include <string_view>
 #include <thread>
 
 #include "boost/asio/deadline_timer.hpp"
@@ -20,6 +23,7 @@ struct msg {
   uint64_t delivery_tag_;
   std::optional<std::string> content_type_;
   std::string exchange_, routing_key_, content_;
+  std::optional<std::int64_t> stream_offset_;
 };
 
 template <typename Context, typename... Args>
@@ -146,10 +150,18 @@ struct con {
     // For RabbitMQ Streams: Add x-stream-offset consumer argument
     auto args = amqp_empty_table;
     auto arg = amqp_table_entry_t{};
-    if (!login_->stream_offset_.empty()) {
+    if (login_->numeric_stream_offset_) {
+      arg.key = amqp_cstring_bytes("x-stream-offset");
+      arg.value.kind = AMQP_FIELD_KIND_I64;
+      arg.value.value.i64 = login_->numeric_stream_offset_.value();
+
+      args.num_entries = 1;
+      args.entries = &arg;
+    } else if (!login_->stream_offset_.empty()) {
       arg.key = amqp_cstring_bytes("x-stream-offset");
       arg.value.kind = AMQP_FIELD_KIND_UTF8;
-      arg.value.value.bytes = amqp_cstring_bytes(login_->stream_offset_.c_str());
+      arg.value.value.bytes =
+          amqp_cstring_bytes(login_->stream_offset_.c_str());
 
       args.num_entries = 1;
       args.entries = &arg;
@@ -170,6 +182,19 @@ struct con {
     utl::verify(res.reply_type == AMQP_RESPONSE_NORMAL,
                 "unexpected message type {}", res.reply_type);
 
+    auto const& headers = envelope.message.properties.headers;
+    auto stream_offset = std::optional<std::int64_t>{};
+    for (auto i = 0; i < headers.num_entries; ++i) {
+      auto const& header = headers.entries[i];
+      auto const key = std::string_view{
+          static_cast<char const*>(header.key.bytes), header.key.len};
+      if (key == "x-stream-offset") {
+        if (header.value.kind == AMQP_FIELD_KIND_I64) {
+          stream_offset = header.value.value.i64;
+        }
+      }
+    }
+
     cb(msg{envelope.delivery_tag,
            (envelope.message.properties._flags &
             AMQP_BASIC_CONTENT_TYPE_FLAG) != 0U
@@ -183,9 +208,11 @@ struct con {
            std::string{static_cast<char*>(envelope.routing_key.bytes),
                        envelope.routing_key.len},
            std::string{static_cast<char*>(envelope.message.body.bytes),
-                       envelope.message.body.len}});
+                       envelope.message.body.len},
+           stream_offset});
 
-    auto const ack_result = amqp_basic_ack(conn_, kChannel, envelope.delivery_tag, 0);
+    auto const ack_result =
+        amqp_basic_ack(conn_, kChannel, envelope.delivery_tag, 0);
     utl::verify(ack_result == 0, "RabbitMQ: could not send ack");
 
     amqp_destroy_envelope(&envelope);
