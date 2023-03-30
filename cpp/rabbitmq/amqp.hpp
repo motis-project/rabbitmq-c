@@ -87,7 +87,7 @@ void throw_if_error(amqp_rpc_reply_t x, Context&& context, Args&&... args) {
   }
 }
 
-amqp_bytes_t_ amqp_bytes_from_str(std::string const& s) {
+inline amqp_bytes_t_ amqp_bytes_from_str(std::string const& s) {
   return {s.length(), const_cast<char*>(&s[0])};
 }
 
