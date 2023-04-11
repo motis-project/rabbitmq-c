@@ -5,7 +5,7 @@ include(cmake/pkg.cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 set(RMQ_SOVERSION_CURRENT   9)
-set(RMQ_SOVERSION_REVISION  1)
+set(RMQ_SOVERSION_REVISION  4)
 set(RMQ_SOVERSION_AGE       5)
 
 include(VersionFunctions)
