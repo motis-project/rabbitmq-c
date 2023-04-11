@@ -6,6 +6,7 @@
 #include <optional>
 #include <string_view>
 #include <thread>
+#include <utility>
 
 #include "boost/asio/deadline_timer.hpp"
 #include "boost/asio/io_service.hpp"
@@ -95,9 +96,32 @@ struct con {
   static constexpr auto const kChannel = 1;
 
   explicit con(login const* login, std::function<void(std::string const&)>* log)
-      : login_{login}, log_{log} {}
+      : login_{login}, log_{log} {
+    utl::verify(conn_ != nullptr, "RabbitMQ: connection creation failed");
+    utl::verify(s_ != nullptr, "RabbitMQ: socket creation failed");
+  }
 
   ~con() { close(); }
+
+  con(con const&) = delete;
+
+  con(con&& o) noexcept
+      : login_{o.login_},
+        log_{o.log_},
+        conn_{std::exchange(o.conn_, conn_)},
+        s_{std::exchange(o.s_, s_)},
+        channel_open_{std::exchange(o.channel_open_, channel_open_)} {}
+
+  con& operator=(con const&) = delete;
+
+  con& operator=(con&& o) noexcept {
+    login_ = o.login_;
+    log_ = o.log_;
+    std::swap(conn_, o.conn_);
+    std::swap(s_, o.s_);
+    std::swap(channel_open_, o.channel_open_);
+    return *this;
+  }
 
   void connect() {
     utl::verify(s_ != nullptr, "RabbitMQ SSL socket creation failed");
