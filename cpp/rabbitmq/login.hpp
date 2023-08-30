@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <optional>
 #include <string>
 
 #include "cista/reflection/comparable.h"
@@ -29,11 +28,7 @@ struct login {
   std::string ca_{}, cert_{}, key_{};
   unsigned timeout_{10U};
   std::uint16_t prefetch_count_{0U};
-
-  // for streams: if numeric_stream_offset_ is set, it is used
-  // otherwise if stream_offset_ is not empty, it is used
   std::string stream_offset_;
-  std::optional<std::int64_t> numeric_stream_offset_;
 };
 
 }  // namespace amqp

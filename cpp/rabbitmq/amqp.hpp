@@ -17,6 +17,7 @@
 #include "utl/verify.h"
 
 #include "rabbitmq/login.hpp"
+#include "rabbitmq/stream.hpp"
 
 namespace amqp {
 
@@ -153,7 +154,7 @@ struct con {
                    "RabbitMQ logging in");
   }
 
-  void open_queue() {
+  void open_queue(stream_options const& stream_opt) {
     // Open channel.
     log_->operator()("opening channel");
     amqp_channel_open(conn_, kChannel);
@@ -174,18 +175,18 @@ struct con {
     // For RabbitMQ Streams: Add x-stream-offset consumer argument
     auto args = amqp_empty_table;
     auto arg = amqp_table_entry_t{};
-    if (login_->numeric_stream_offset_) {
+    if (stream_opt.numeric_stream_offset_) {
       arg.key = amqp_cstring_bytes("x-stream-offset");
       arg.value.kind = AMQP_FIELD_KIND_I64;
-      arg.value.value.i64 = login_->numeric_stream_offset_.value();
+      arg.value.value.i64 = stream_opt.numeric_stream_offset_.value();
 
       args.num_entries = 1;
       args.entries = &arg;
-    } else if (!login_->stream_offset_.empty()) {
+    } else if (!stream_opt.stream_offset_.empty()) {
       arg.key = amqp_cstring_bytes("x-stream-offset");
       arg.value.kind = AMQP_FIELD_KIND_UTF8;
       arg.value.value.bytes =
-          amqp_cstring_bytes(login_->stream_offset_.c_str());
+          amqp_cstring_bytes(stream_opt.stream_offset_.c_str());
 
       args.num_entries = 1;
       args.entries = &arg;
@@ -259,8 +260,11 @@ struct con {
 
 struct ssl_connection {
   explicit ssl_connection(login const* login,
-                          std::function<void(std::string const&)> log)
-      : login_{login}, log_{std::move(log)} {}
+                          std::function<void(std::string const&)> log,
+                          get_stream_options_fn_t get_stream_options = nullptr)
+      : login_{login},
+        log_{std::move(log)},
+        get_stream_options_{std::move(get_stream_options)} {}
 
   void run(std::function<void(msg const&)>&& cb) {
     t_ = std::thread{[&, cb = std::move(cb)]() {
@@ -274,7 +278,10 @@ struct ssl_connection {
           con_.do_login();
 
           log_("opening queue");
-          con_.open_queue();
+          auto const stream_opt = get_stream_options_ != nullptr
+                                      ? get_stream_options_()
+                                      : stream_options{};
+          con_.open_queue(stream_opt);
 
           log_("receive loop");
           while (!stopped_) {
@@ -298,6 +305,7 @@ struct ssl_connection {
   std::thread t_;
   login const* login_{nullptr};
   std::function<void(std::string const&)> log_;
+  get_stream_options_fn_t get_stream_options_{nullptr};
   con con_{login_, &log_};
 };
 
