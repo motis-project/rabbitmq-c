@@ -148,9 +148,9 @@ struct con {
   }
 
   void do_login() const {
-    throw_if_error(amqp_login(conn_, login_->vhost_.c_str(), 0, 131072, 0,
-                              AMQP_SASL_METHOD_PLAIN, login_->user_.c_str(),
-                              login_->pw_.c_str()),
+    throw_if_error(amqp_login(conn_, login_->vhost_.c_str(), 0, 131072,
+                              login_->heartbeat_, AMQP_SASL_METHOD_PLAIN,
+                              login_->user_.c_str(), login_->pw_.c_str()),
                    "RabbitMQ logging in");
   }
 
@@ -203,6 +203,11 @@ struct con {
 
     auto envelope = amqp_envelope_t{};
     auto const res = amqp_consume_message(conn_, &envelope, NULL, 0);
+
+    if (res.reply_type == AMQP_RESPONSE_LIBRARY_EXCEPTION) {
+      throw utl::fail("RabbitMQ library exception: {}",
+                      amqp_error_string2(res.library_error));
+    }
 
     utl::verify(res.reply_type == AMQP_RESPONSE_NORMAL,
                 "unexpected message type {}", res.reply_type);

@@ -27,6 +27,7 @@ struct login {
   std::string user_, pw_;
   std::string ca_{}, cert_{}, key_{};
   unsigned timeout_{10U};
+  int heartbeat_{60}; // seconds, 0 to disable
   std::uint16_t prefetch_count_{0U};
   std::string stream_offset_;
 };
