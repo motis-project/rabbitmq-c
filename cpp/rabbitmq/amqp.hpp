@@ -31,10 +31,10 @@ struct msg {
 template <typename Context, typename... Args>
 void throw_if_error(int x, Context&& context, Args&&... args) {
   if (x < 0) {
-    throw utl::fail("{}: {}",
-                    fmt::format(std::forward<Context>(context),
-                                std::forward<Args>(args)...),
-                    amqp_error_string2(x));
+    throw utl::fail(
+        "{}: {}",
+        fmt::format(fmt::runtime(context), std::forward<Args>(args)...),
+        amqp_error_string2(x));
   }
 }
 
@@ -45,15 +45,15 @@ void throw_if_error(amqp_rpc_reply_t x, Context&& context, Args&&... args) {
       return;
 
     case AMQP_RESPONSE_NONE:
-      throw utl::fail("{}: missing RPC reply type!",
-                      fmt::format(std::forward<Context>(context),
-                                  std::forward<Args>(args)...));
+      throw utl::fail(
+          "{}: missing RPC reply type!",
+          fmt::format(fmt::runtime(context), std::forward<Args>(args)...));
 
     case AMQP_RESPONSE_LIBRARY_EXCEPTION:
-      throw utl::fail("{}: {}",
-                      fmt::format(std::forward<Context>(context),
-                                  std::forward<Args>(args)...),
-                      amqp_error_string2(x.library_error));
+      throw utl::fail(
+          "{}: {}",
+          fmt::format(fmt::runtime(context), std::forward<Args>(args)...),
+          amqp_error_string2(x.library_error));
 
     case AMQP_RESPONSE_SERVER_EXCEPTION:
       switch (x.reply.id) {
@@ -62,8 +62,7 @@ void throw_if_error(amqp_rpc_reply_t x, Context&& context, Args&&... args) {
               static_cast<amqp_connection_close_t*>(x.reply.decoded);
           throw utl::fail(
               "{}: server connection error {}, message: {}",
-              fmt::format(std::forward<Context>(context),
-                          std::forward<Args>(args)...),
+              fmt::format(fmt::runtime(context), std::forward<Args>(args)...),
               m->reply_code,
               std::string_view{static_cast<char const*>(m->reply_text.bytes),
                                m->reply_text.len});
@@ -73,18 +72,17 @@ void throw_if_error(amqp_rpc_reply_t x, Context&& context, Args&&... args) {
           auto const* m = static_cast<amqp_channel_close_t*>(x.reply.decoded);
           throw utl::fail(
               "{}: server channel error {}, message: {}\n",
-              fmt::format(std::forward<Context>(context),
-                          std::forward<Args>(args)...),
+              fmt::format(fmt::runtime(context), std::forward<Args>(args)...),
               m->reply_code,
               std::string_view{static_cast<char const*>(m->reply_text.bytes),
                                m->reply_text.len});
         }
 
         default:
-          throw utl::fail("{}: unknown server error, method id 0x{0:x}\n",
-                          fmt::format(std::forward<Context>(context),
-                                      std::forward<Args>(args)...),
-                          x.reply.id);
+          throw utl::fail(
+              "{}: unknown server error, method id 0x{0:x}\n",
+              fmt::format(fmt::runtime(context), std::forward<Args>(args)...),
+              x.reply.id);
       }
   }
 }
@@ -210,7 +208,7 @@ struct con {
     }
 
     utl::verify(res.reply_type == AMQP_RESPONSE_NORMAL,
-                "unexpected message type {}", res.reply_type);
+                "unexpected message type {}", static_cast<int>(res.reply_type));
 
     auto const& headers = envelope.message.properties.headers;
     auto stream_offset = std::optional<std::int64_t>{};
